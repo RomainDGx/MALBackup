@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31019.35
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MALBackup.App", "MALBackup.App\MALBackup.App.csproj", "{4558EC28-24F4-4674-9390-3BC30441B385}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4558EC28-24F4-4674-9390-3BC30441B385}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4558EC28-24F4-4674-9390-3BC30441B385}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4558EC28-24F4-4674-9390-3BC30441B385}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4558EC28-24F4-4674-9390-3BC30441B385}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {131A6D65-FB15-414A-AE05-FC5F2C881827}
+	EndGlobalSection
+EndGlobal
