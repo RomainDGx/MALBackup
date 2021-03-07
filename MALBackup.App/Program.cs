@@ -50,7 +50,6 @@ namespace MALBackup.App
 
                 do
                 {
-                    
                     HttpResponseMessage data = await client.GetAsync( url + animeList.Count.ToString() );
                     if( !data.IsSuccessStatusCode ) throw new HttpRequestException( $"Http error : code {data.StatusCode}" );
 
