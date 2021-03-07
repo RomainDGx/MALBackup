@@ -1,4 +1,6 @@
+using MALBackup.Core;
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
@@ -9,7 +11,7 @@ namespace MALBackup.App
 {
     class Program
     {
-        static readonly JsonReaderOptions _readerOptions = new JsonReaderOptions
+        static readonly JsonReaderOptions _readerOptions = new()
         {
             AllowTrailingCommas = true,
             CommentHandling = JsonCommentHandling.Skip
@@ -40,116 +42,33 @@ namespace MALBackup.App
                     Indented = true,
                     SkipValidation = false
                 };
-                using var writter = new Utf8JsonWriter( stream, options );
+                using var writer = new Utf8JsonWriter( stream, options );
 
                 using var client = new HttpClient();
 
-                writter.WriteStartArray();
+                var animeList = new AnimeList();
 
-                // Count total anime
-                int count = 0;
                 do
                 {
-                    HttpResponseMessage data = await client.GetAsync( url + count.ToString() );
+                    
+                    HttpResponseMessage data = await client.GetAsync( url + animeList.Count.ToString() );
                     if( !data.IsSuccessStatusCode ) throw new HttpRequestException( $"Http error : code {data.StatusCode}" );
 
                     byte[] byteData = await data.Content.ReadAsByteArrayAsync();
+                    
+                    animeList.Concat( new Utf8JsonReader( byteData, _readerOptions ) );
 
-                    count += DataAdder( writter, byteData );
+                // One load of data from myanimelist contains 300 entities
+                } while( animeList.Count % 300 == 0 );
 
-                    // One load of data from myanimelist contains 300 entities
-                } while( count % 300 == 0 );
-
-                writter.WriteEndArray();
+                animeList.Save( writer );
             }
             catch( Exception e )
             {
                 Console.WriteLine( $"Error : {e.Message}" );
+                Debug.Write( e.StackTrace );
                 if( File.Exists( fileName ) ) File.Delete( fileName );
             }
-        }
-
-        /// <summary>
-        /// Add <paramref name="data"/> in <paramref name="writter"/> content.
-        /// </summary>
-        /// <returns>Number of new elements.</returns>
-        static int DataAdder( Utf8JsonWriter writter, byte[] data )
-        {
-            int count = 0;
-
-            Utf8JsonReader reader = new Utf8JsonReader( data, _readerOptions );
-
-            // TODO : Test if throw exception if reader contains void array
-            reader.Read(); // Open start array
-            reader.Read(); // Open first oject
-            writter.WriteStartObject();
-
-            while( reader.Read() && reader.TokenType != JsonTokenType.EndArray )
-            {
-                if( reader.TokenType == JsonTokenType.EndObject )
-                {
-                    writter.WriteEndObject();
-                    count++;
-                    reader.Read(); // Open next object or end array
-
-                    if( reader.TokenType == JsonTokenType.EndArray )
-                    {
-                        break;
-                    }
-
-                    writter.WriteStartObject();
-                    reader.Read(); // Open property
-                }
-
-                string propertyName = reader.GetString();
-
-                reader.Read(); // go to value
-
-                switch( propertyName )
-                {
-                    case "status":
-                    case "score":
-                    case "is_rewatching":
-                    case "num_watched_episodes":
-                    case "anime_num_episodes":
-                    case "anime_airing_status":
-                    case "anime_id":
-                        writter.WriteNumber( propertyName, reader.GetInt32() );
-                        break;
-
-                    case "has_episode_video":
-                    case "has_promotion_video":
-                    case "has_video":
-                    case "is_added_to_list":
-                        writter.WriteBoolean( propertyName, reader.GetBoolean() );
-                        break;
-
-                    case "tags":
-                    case "anime_title":
-                    case "video_url":
-                    case "anime_url":
-                    case "anime_image_path":
-                    case "anime_media_type_string":
-                    case "anime_mpaa_rating_string":
-                    case "anime_start_date_string":
-                    case "anime_end_date_string":
-                    case "storage_string":
-                    case "priority_string":
-                        writter.WriteString( propertyName, reader.GetString() );
-                        break;
-
-                    case "anime_studios":
-                    case "anime_licensors":
-                    case "anime_season":
-                    case "start_date_string":
-                    case "finish_date_string":
-                    case "days_string":
-                        // TODO : Find the value of the types by checking the checkboxes : https://myanimelist.net/editprofile.php?go=listpreferences
-                        writter.WriteNull( propertyName );
-                        break;
-                }
-            }
-            return count;
         }
     }
 }
