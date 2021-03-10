@@ -33,7 +33,7 @@ namespace MALBackup.App
                 // Tip from this website : https://malscraper.azurewebsites.net/
                 var url = $"https://myanimelist.net/animelist/{username}/load.json?status={status}&offset=";
 
-                fileName = Path.Combine( targetFolder, DateTime.UtcNow.ToString( "yyyyy-MM-dd-HH-mm-ss" ) + ".json" );
+                fileName = Path.Combine( targetFolder, DateTime.UtcNow.ToString( "yyyy-MM-dd-HH-mm-ss" ) + ".json" );
                 using FileStream stream = File.OpenWrite( fileName );
 
                 var options = new JsonWriterOptions()
@@ -51,7 +51,10 @@ namespace MALBackup.App
                 do
                 {
                     HttpResponseMessage data = await client.GetAsync( url + animeList.Count.ToString() );
-                    if( !data.IsSuccessStatusCode ) throw new HttpRequestException( $"Http error : code {data.StatusCode}" );
+                    if( !data.IsSuccessStatusCode )
+                    {
+                        throw new HttpRequestException( $"Http error : code {data.StatusCode}" );
+                    }
 
                     byte[] byteData = await data.Content.ReadAsByteArrayAsync();
                     

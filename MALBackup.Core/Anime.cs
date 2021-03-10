@@ -14,7 +14,7 @@ namespace MALBackup.Core
             get => _score;
             set
             {
-                if( value is < 0 or > 10)
+                if( value is < 0 or > 10 )
                 {
                     throw new ArgumentException( $"Score must between 0 and 10, value: {value}" );
                 }
@@ -108,7 +108,7 @@ namespace MALBackup.Core
                             3 => Status.OnHold,
                             5 => Status.Dropped,
                             6 => Status.PlanToWatch,
-                            _ => throw new ArgumentException( $"Not valid status: {status}")
+                            _ => throw new JsonException( $"Not valid status: {status}")
                         };
                         break;
 
@@ -183,7 +183,7 @@ namespace MALBackup.Core
                             "Special" => MediaType.Special,
                             "TV" => MediaType.TV,
                             "Unknown" => MediaType.Unknown,
-                            _ => throw new ArgumentException( $"Not valid media type: {mediaType}" )
+                            _ => throw new JsonException( $"Not valid anime_media_type_string: {mediaType}" )
                         };
                         break;
 
@@ -226,7 +226,7 @@ namespace MALBackup.Core
                             "Low" => Priority.Low,
                             "Medium" => Priority.Medium,
                             "Hight" => Priority.Hight,
-                            _ => throw new ArgumentException( $"Invalid priority: {priority}" )
+                            _ => throw new JsonException( $"Not valid priority_string value: {priority}" )
                         };
                         break;
 
@@ -265,7 +265,7 @@ namespace MALBackup.Core
                         break;
 
                     default:
-                        throw new ArgumentException( $"Invalid property name: {propertyName}" );
+                        throw new JsonException( $"Not valid anime property name: {propertyName}" );
                 }
             }
         }

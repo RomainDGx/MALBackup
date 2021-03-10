@@ -31,8 +31,8 @@ namespace MALBackup.Core
 
                     case "name":
                         Name = reader.GetString();
-
                         break;
+
                     default:
                         throw new JsonException( $"Invalid property name: {propertyName}" );
                 }
