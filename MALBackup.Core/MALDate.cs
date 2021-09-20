@@ -46,6 +46,13 @@ namespace MALBackup.Core
             Year = year + (year > new DateTime().Year + 2 ? 1900 : 2000);
         }
 
+        public MALDate( DateTime dateTime )
+        {
+            Day = dateTime.Day;
+            Month = dateTime.Month;
+            Year = dateTime.Year;
+        }
+
         public override string ToString()
         {
             string day = Day is null ? "00" : Day < 10 ? "0" + Day.ToString() : Day.ToString();

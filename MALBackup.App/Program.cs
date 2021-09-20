@@ -1,6 +1,6 @@
+using CK.Core;
 using MALBackup.Core;
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
@@ -19,57 +19,76 @@ namespace MALBackup.App
 
         static async Task Main( string[] args )
         {
-            string fileName = "";
-            try
+            var now = DateTime.UtcNow.ToString( "yyyy-MM-dd-HH-mm-ss" );
+
+            var monitor = new ActivityMonitor();
+
+            monitor.Output.RegisterClient( new ActivityMonitorConsoleClient() );
+            using( monitor.Output.RegisterClient( BufferedFileMonitorClient.RegisterClient( monitor, Path.Combine( "D:\\dev\\Perso\\MyAnimeList\\MALBackup\\MALBackup.App\\Logs\\", now + ".log" ), LogFilter.Trace ) ) )
+            using( var _ = monitor.OpenTrace( "Run process MALBackupApp.App" ) )
             {
-                if( args.Length < 3 ) throw new ArgumentException( $"Expected 3 arguments but received {args.Length}." );
-                if( !Regex.IsMatch( args[1], @"^[1-7]$" ) ) throw new ArgumentException( $"Invalid status. Expected number between 1 and 7 and receive {args[1]}" );
-                if( !Directory.Exists( args[2] ) ) throw new DirectoryNotFoundException( $"Directory not exists '{args[2]}'" );
-
-                string username = args[0];
-                string status = args[1];
-                string targetFolder = args[2];
-
-                // Tip from this website : https://malscraper.azurewebsites.net/
-                var url = $"https://myanimelist.net/animelist/{username}/load.json?status={status}&offset=";
-
-                fileName = Path.Combine( targetFolder, DateTime.UtcNow.ToString( "yyyy-MM-dd-HH-mm-ss" ) + ".json" );
-                using FileStream stream = File.OpenWrite( fileName );
-
-                var options = new JsonWriterOptions()
+                string fileName = "";
+                try
                 {
-                    Encoder = null,
-                    Indented = true,
-                    SkipValidation = false
-                };
-                using var writer = new Utf8JsonWriter( stream, options );
+                    if( args.Length < 3 ) throw new ArgumentException( $"Expected 3 arguments but received {args.Length}." );
+                    if( !Regex.IsMatch( args[1], @"^[1-7]$" ) ) throw new ArgumentException( $"Invalid status. Expected number between 1 and 7 and receive {args[1]}" );
+                    if( !Directory.Exists( args[2] ) ) throw new DirectoryNotFoundException( $"Directory not exists '{args[2]}'" );
 
-                using var client = new HttpClient();
+                    string username = args[0];
+                    string status = args[1];
+                    string targetFolder = args[2];
 
-                var animeList = new AnimeList();
+                    monitor.Info( $"Arguments: '{username}' '{status}' '{targetFolder}'" );
 
-                do
-                {
-                    HttpResponseMessage data = await client.GetAsync( url + animeList.Count.ToString() );
-                    if( !data.IsSuccessStatusCode )
+                    var url = $"https://myanimelist.net/animelist/{username}/load.json?status={status}&offset=";
+
+                    fileName = Path.Combine( targetFolder, now + ".json" );
+                    using FileStream stream = File.OpenWrite( fileName );
+
+                    monitor.Info( $"Open file {fileName}" );
+
+                    var options = new JsonWriterOptions()
                     {
-                        throw new HttpRequestException( $"Http error : code {data.StatusCode}" );
-                    }
+                        Encoder = null,
+                        Indented = true,
+                        SkipValidation = false
+                    };
+                    using var writer = new Utf8JsonWriter( stream, options );
 
-                    byte[] byteData = await data.Content.ReadAsByteArrayAsync();
-                    
-                    animeList.Concat( new Utf8JsonReader( byteData, _readerOptions ) );
+                    using var client = new HttpClient();
 
-                // One load of data from myanimelist contains 300 entities
-                } while( animeList.Count % 300 == 0 );
+                    var animeList = new AnimeList();
 
-                animeList.Save( writer );
-            }
-            catch( Exception e )
-            {
-                Console.WriteLine( $"Error : {e.Message}" );
-                Debug.Write( e.StackTrace );
-                if( File.Exists( fileName ) ) File.Delete( fileName );
+                    do
+                    {
+                        HttpResponseMessage data = await client.GetAsync( url + animeList.Count.ToString() );
+
+                        monitor.Info( $"Sending request at {url + animeList.Count.ToString()}" );
+
+                        if( !data.IsSuccessStatusCode )
+                        {
+                            throw new HttpRequestException( $"Http request error: code {data.StatusCode}" );
+                        }
+                        monitor.Info( $"Http request successfully sended" );
+
+                        byte[] byteData = await data.Content.ReadAsByteArrayAsync();
+
+                        animeList.Concat( new Utf8JsonReader( byteData, _readerOptions ) );
+
+                        monitor.Info( "Successfully anime data parsing" );
+
+                        // One load of data from myanimelist contains 300 entities
+                    } while( animeList.Count % 300 == 0 );
+
+                    animeList.Save( writer );
+
+                    monitor.Info( "Animelist was successfully saved" );
+                }
+                catch( Exception e )
+                {
+                    monitor.Error( e );
+                    if( File.Exists( fileName ) ) File.Delete( fileName );
+                }
             }
         }
     }
