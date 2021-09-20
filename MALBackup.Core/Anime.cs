@@ -82,7 +82,23 @@ namespace MALBackup.Core
 
         public List<License> Licensors { get; }
 
+        public List<Genre> Genres { get; }
+
+        public List<Demographic> Demographics { get; }
+
         public string Season { get; }
+
+        public Anime( int animeId, string animeTitle, string animeUrl, string season, List<Studio> studios, List<License> licensors, List<Genre> genres, List<Demographic> demographics )
+        {
+            AnimeId = animeId;
+            Title = animeTitle;
+            AnimeUrl = animeUrl;
+            Season = season;
+            Studios = studios;
+            Licensors = licensors;
+            Genres = genres;
+            Demographics = demographics;
+        }
 
         internal Anime( ref Utf8JsonReader reader )
         {
@@ -260,6 +276,36 @@ namespace MALBackup.Core
                         }
                         break;
 
+                    case "genres":
+                        if( reader.TokenType == JsonTokenType.Null )
+                        {
+                            Genres = null;
+                            break;
+                        }
+
+                        Genres = new List<Genre>();
+
+                        while( reader.Read() && reader.TokenType != JsonTokenType.EndArray )
+                        {
+                            Genres.Add( new Genre( ref reader ) );
+                        }
+                        break;
+
+                    case "demographics":
+                        if( reader.TokenType == JsonTokenType.Null )
+                        {
+                            Demographics = null;
+                            break;
+                        }
+
+                        Demographics = new List<Demographic>();
+
+                        while( reader.Read() && reader.TokenType != JsonTokenType.EndArray )
+                        {
+                            Demographics.Add( new Demographic( ref reader ) );
+                        }
+                        break;
+
                     case "anime_season":
                         Season = reader.GetString();
                         break;
@@ -294,6 +340,20 @@ namespace MALBackup.Core
             {
                 writer.WriteStartArray( "anime_licensors" );
                 Licensors.ForEach( licensor => licensor.Save( writer ) );
+                writer.WriteEndArray();
+            }
+            if( Genres is null ) writer.WriteNull( "genres" );
+            else
+            {
+                writer.WriteStartArray( "genres" );
+                Genres.ForEach( genre => genre.Save( writer ) );
+                writer.WriteEndArray();
+            }
+            if( Demographics is null ) writer.WriteNull( "demographics" );
+            else
+            {
+                writer.WriteStartArray( "demographics" );
+                Demographics.ForEach( demographic => demographic.Save( writer ) );
                 writer.WriteEndArray();
             }
             writer.WriteString( "anime_season", Season );
