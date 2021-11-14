@@ -44,6 +44,10 @@ namespace MALBackup.Core
 
         public string Title { get; }
 
+        public string EnglishTitle { get; }
+
+        public string? TitleLocalized { get; set; }
+
         /// <summary>
         /// URL of anime's trailer on MyAnimeList website.
         /// </summary>
@@ -174,6 +178,14 @@ namespace MALBackup.Core
 
                     case "anime_title":
                         Title = reader.GetString();
+                        break;
+
+                    case "anime_title_eng":
+                        EnglishTitle = reader.GetString();
+                        break;
+
+                    case "title_localized":
+                        TitleLocalized = reader.GetString();
                         break;
 
                     case "video_url":
@@ -325,6 +337,8 @@ namespace MALBackup.Core
             writer.WriteNumber( "is_rewatching", IsRewatching );
             writer.WriteNumber( "num_watched_episodes", NumWatchedEpisodes );
             writer.WriteString( "anime_title", Title );
+            writer.WriteString( "anime_title_eng", EnglishTitle );
+            writer.WriteString( "title_licalized", TitleLocalized );
             writer.WriteNumber( "anime_num_episodes", NumEpisodes );
             writer.WriteNumber( "anime_airing_status", AiringStatus );
             writer.WriteNumber( "anime_id", AnimeId );
