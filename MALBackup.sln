@@ -5,9 +5,7 @@ VisualStudioVersion = 17.2.32526.322
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MALBackup.App", "MALBackup.App\MALBackup.App.csproj", "{4558EC28-24F4-4674-9390-3BC30441B385}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MALBackup.Core", "MALBackup.Core\MALBackup.Core.csproj", "{2C9AC3B6-1A2F-4A9C-A500-E5822495BF6D}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MALBackup.Model", "MALBackup.Model\MALBackup.Model.csproj", "{1642CC94-F71C-47EA-B8D3-1E833E014400}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MALBackup.Model", "MALBackup.Model\MALBackup.Model.csproj", "{1642CC94-F71C-47EA-B8D3-1E833E014400}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,10 +17,6 @@ Global
 		{4558EC28-24F4-4674-9390-3BC30441B385}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4558EC28-24F4-4674-9390-3BC30441B385}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4558EC28-24F4-4674-9390-3BC30441B385}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2C9AC3B6-1A2F-4A9C-A500-E5822495BF6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2C9AC3B6-1A2F-4A9C-A500-E5822495BF6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2C9AC3B6-1A2F-4A9C-A500-E5822495BF6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2C9AC3B6-1A2F-4A9C-A500-E5822495BF6D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{1642CC94-F71C-47EA-B8D3-1E833E014400}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{1642CC94-F71C-47EA-B8D3-1E833E014400}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1642CC94-F71C-47EA-B8D3-1E833E014400}.Release|Any CPU.ActiveCfg = Release|Any CPU
