@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MALBackup.App", "MALBackup.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MALBackup.Core", "MALBackup.Core\MALBackup.Core.csproj", "{2C9AC3B6-1A2F-4A9C-A500-E5822495BF6D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MALBackup.Model", "MALBackup.Model\MALBackup.Model.csproj", "{1642CC94-F71C-47EA-B8D3-1E833E014400}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MALBackup.Model", "MALBackup.Model\MALBackup.Model.csproj", "{1642CC94-F71C-47EA-B8D3-1E833E014400}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

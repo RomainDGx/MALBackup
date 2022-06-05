@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace MALBackup.Model
 {
     /// <summary>
@@ -8,23 +10,23 @@ namespace MALBackup.Model
         /// <summary>
         /// The identifier of the anime (in MyAnimeList).
         /// </summary>
+        [JsonPropertyName( "id" )]
         public int Id { get; set; }
         /// <summary>
         /// The title of the anime.
         /// </summary>
+        [JsonPropertyName( "title" )]
         public string? Title { get; set; }
         /// <summary>
         /// The number of episodes of the anime.
         /// If the value is 0, the number of episodes is not defined (in MyAnimeList).
         /// </summary>
+        [JsonPropertyName( "num_episodes" )]
         public int Episodes { get; set; }
         /// <summary>
-        /// Number of user watched episodes.
+        /// The anime watching status by the user.
         /// </summary>
-        public int WatchedEpisodes { get; set; }
-        /// <summary>
-        /// The user watching status for the anime.
-        /// </summary>
-        public Status Status { get; set; }
+        [JsonPropertyName( "list_status" )]
+        public UserStatus? UserStatus { get; set; }
     }
 }
