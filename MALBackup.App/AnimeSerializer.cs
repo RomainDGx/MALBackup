@@ -8,7 +8,10 @@ namespace MALBackup.App
     {
         public static Anime DeserializeAnime( ref Utf8JsonReader json )
         {
-            Debug.Assert( json.TokenType == JsonTokenType.StartObject, "Anime entity should start with open curly bracket." );
+            if( json.TokenType != JsonTokenType.StartObject )
+            {
+                throw new InvalidDataException( "Anime entity should start with open curly bracket." );
+            }
 
             Anime anime = new();
 
@@ -32,7 +35,10 @@ namespace MALBackup.App
                     case "anime_title":
                         {
                             anime.Title = json.GetString();
-                            Debug.Assert( anime.Title is not null, "Anime title shouldn't be null." );
+                            if( anime.Title is null )
+                            {
+                                throw new InvalidDataException( "Anime title shouldn't be null." );
+                            }
                             break;
                         }
                     case "anime_num_episodes":
@@ -47,16 +53,12 @@ namespace MALBackup.App
                         }
                     case "status":
                         {
-                            int status = json.GetInt32();
-                            anime.Status = status switch
+                            var status = (Status)json.GetInt32();
+                            if( !Enum.IsDefined( status ) )
                             {
-                                1 => Status.Watching,
-                                2 => Status.Completed,
-                                3 => Status.OnHold,
-                                5 => Status.Dropped,
-                                6 => Status.PlanToWatch,
-                                _ => throw new ArgumentException( $"Invalid status: {status}" )
-                            };
+                                throw new InvalidDataException( $"Invalid status: {status}" );
+                            }
+                            anime.Status = status;
                             break;
                         }
                     default:
@@ -72,7 +74,10 @@ namespace MALBackup.App
 
         public static List<Anime> DeserializeAnimeList( ref Utf8JsonReader json )
         {
-            Debug.Assert( json.TokenType == JsonTokenType.StartArray, "Anime list should start with open bracket." );
+            if( json.TokenType != JsonTokenType.StartArray )
+            {
+                throw new InvalidDataException( "Anime list should start with open bracket." );
+            }
 
             List<Anime> animes = new();
 

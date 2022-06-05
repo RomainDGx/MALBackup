@@ -1,8 +1,5 @@
-using CK.Core;
-using MALBackup.Core;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace MALBackup.App
 {
@@ -10,7 +7,7 @@ namespace MALBackup.App
     {
         static async Task Main( string[] args )
         {
-            var arguments = ValidateArguments( args );
+            var (userName, status, targetFolder) = ValidateArguments( args );
 
             using HttpClient httpClient = new();
             List<Model.Anime> animes = new();
@@ -19,7 +16,7 @@ namespace MALBackup.App
 
             do
             {
-                string requestUri = $"https://myanimelist.net/animelist/{arguments.UserName}/load.json?status={arguments.Status}&offset={offset}";
+                string requestUri = $"https://myanimelist.net/animelist/{userName}/load.json?status={status}&offset={offset}";
 
                 byte[] data = await SendRequestAsync( httpClient, requestUri );
 
@@ -29,7 +26,7 @@ namespace MALBackup.App
             }
             while( newAnimes.Count > 0 );
 
-            string filePath = Path.Combine( arguments.TargetFolder, $"{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}.json" );
+            string filePath = Path.Combine( targetFolder, $"{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}.json" );
             SaveAnimes( filePath, animes );
         }
 
@@ -40,17 +37,29 @@ namespace MALBackup.App
         /// <returns>Tuple of the program arguments.</returns>
         static (string UserName, string Status, string TargetFolder) ValidateArguments( string[] args )
         {
-            if( args is null ) throw new ArgumentNullException( nameof( args ) );
-            if( args.Length != 3 ) throw new ArgumentException( $"Expected 3 arguments but received {args.Length} argument(s)." );
-            if( args[1].Length != 1 && args[1][0] is >= '1' and <= '7' ) throw new ArgumentException( $"Invalid status. Expected number between 1 and 7 but received '{args[1]}'." );
-            if( !Directory.Exists( args[2] ) ) throw new DirectoryNotFoundException( $"The directory doesn't exist '{args[2]}'." );
+            if( args is null )
+            {
+                throw new ArgumentNullException( nameof( args ) );
+            }
+            if( args.Length != 3 )
+            {
+                throw new ArgumentException( $"Expected 3 arguments but received {args.Length} argument(s)." );
+            }
+            if( args[1].Length != 1 || args[1][0] is < '1' or > '7' )
+            {
+                throw new ArgumentException( $"Invalid status. Expected number between 1 and 7 but received '{args[1]}'." );
+            }
+            if( !Directory.Exists( args[2] ) )
+            {
+                throw new DirectoryNotFoundException( $"The directory doesn't exist '{args[2]}'." );
+            }
 
             return (args[0], args[1], args[2]);
         }
 
-        static async Task<byte[]> SendRequestAsync( HttpClient client, string requestUri )
+        static async Task<byte[]> SendRequestAsync( HttpClient httpClient, string requestUri )
         {
-            using var response = await client.GetAsync( requestUri );
+            using var response = await httpClient.GetAsync( requestUri );
 
             ValidateResponse( response );
 
@@ -93,6 +102,9 @@ namespace MALBackup.App
             return AnimeSerializer.DeserializeAnimeList( ref json );
         }
 
+        /// <summary>
+        /// Save the animes in Json format in the specified file.
+        /// </summary>
         static void SaveAnimes( string filePath, List<Model.Anime> animes )
         {
             using FileStream stream = File.OpenWrite( filePath );
@@ -100,103 +112,5 @@ namespace MALBackup.App
 
             AnimeSerializer.SerializeAnimeList( json, animes );
         }
-
-        #region Old Code
-
-        static readonly JsonReaderOptions _readerOptions = new()
-        {
-            AllowTrailingCommas = true,
-            CommentHandling = JsonCommentHandling.Skip
-        };
-
-        static async Task OldMain( string[] args )
-        {
-            var now = DateTime.UtcNow.ToString( "yyyy-MM-dd-HH-mm-ss" );
-            string fileName = "";
-
-            ActivityMonitor monitor = new();
-
-            try
-            {
-                monitor.Output.RegisterClient( new ActivityMonitorConsoleClient() );
-
-                using( monitor.Output.RegisterClient( BufferedFileMonitorClient.RegisterClient( monitor, Path.Combine( GetLogFilePath( args ), now + ".log" ), LogFilter.Trace ) ) )
-                using( var _ = monitor.OpenTrace( "Run process MALBackupApp.App" ) )
-                {
-                    CheckArgs( args, out string username, out string status, out string targetFolder );
-
-                    monitor.Info( $"Arguments: '{username}' '{status}' '{targetFolder}'" );
-
-                    var url = $"https://myanimelist.net/animelist/{username}/load.json?status={status}&offset=";
-
-                    fileName = Path.Combine( targetFolder, now + ".json" );
-                    using FileStream stream = File.OpenWrite( fileName );
-
-                    monitor.Info( $"Open file {fileName}" );
-
-                    JsonWriterOptions options = new()
-                    {
-                        Encoder = null,
-                        Indented = true,
-                        SkipValidation = false
-                    };
-                    using Utf8JsonWriter writer = new( stream, options );
-
-                    using HttpClient client = new();
-
-                    AnimeList animeList = new();
-
-                    do
-                    {
-                        HttpResponseMessage data = await client.GetAsync( url + animeList.Count.ToString() );
-
-                        monitor.Info( $"Sending request at {url + animeList.Count.ToString()}" );
-
-                        if( !data.IsSuccessStatusCode )
-                        {
-                            throw new HttpRequestException( $"Http request error: code {data.StatusCode}" );
-                        }
-                        monitor.Info( $"Http request successfully sended" );
-
-                        byte[] byteData = await data.Content.ReadAsByteArrayAsync();
-
-                        animeList.Concat( new Utf8JsonReader( byteData, _readerOptions ) );
-
-                        monitor.Info( "Successfully anime data parsing" );
-
-                        // One load of data from myanimelist contains 300 entities
-                    } while( animeList.Count % 300 == 0 );
-
-                    animeList.Save( writer );
-
-                    monitor.Info( "Animelist was successfully saved" );
-                }
-            }
-            catch( Exception e )
-            {
-                monitor.Error( e );
-                if( File.Exists( fileName ) ) File.Delete( fileName );
-            }
-        }
-
-        static bool CheckArgs( string[] args, out string username, out string status, out string targetFolder )
-        {
-            if( args.Length < 3 ) throw new ArgumentException( $"Expected 3 arguments but received {args.Length}." );
-            if( !Regex.IsMatch( args[1], @"^[1-7]$" ) ) throw new ArgumentException( $"Invalid status. Expected number between 1 and 7 and receive {args[1]}" );
-            if( !Directory.Exists( args[2] ) ) throw new DirectoryNotFoundException( $"The directory doesn't exist '{args[2]}'" );
-
-            username = args[0];
-            status = args[1];
-            targetFolder = args[2];
-
-            return true;
-        }
-
-        static string GetLogFilePath( string[] args )
-            => args.Length >= 4 && Directory.Exists( args[3] )
-                ? args[3]
-                : Directory.GetCurrentDirectory();
     }
-
-    #endregion
 }
