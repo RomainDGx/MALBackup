@@ -67,10 +67,13 @@ namespace MALBackup.App
         /// <summary>
         /// Check if the response status is success.
         /// </summary>
-        /// <param name="response"></param>
         /// <exception cref="Exception">If the response is not success.</exception>
         static async Task ValidateHttpResponseAsync( HttpResponseMessage response )
         {
+            if( response is null )
+            {
+                throw new ArgumentNullException( nameof( response ) );
+            }
             if( !response.IsSuccessStatusCode )
             {
                 var builder = new StringBuilder( "Not success response." )
