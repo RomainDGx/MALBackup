@@ -10,7 +10,7 @@ namespace MalBackup.FormatData
 {
     internal class Program
     {
-        static JsonSerializerOptions _options = new()
+        static readonly JsonSerializerOptions _options = new()
         {
             WriteIndented = true
         };
@@ -26,7 +26,7 @@ namespace MalBackup.FormatData
             foreach( string filePath in Directory.GetFiles( inputPath, "*.json" ) )
             {
                 var animes = (await GetFileDataAsync( filePath )).Select( oldAnime => oldAnime.ToAnime() );
-
+                 
                 string fileName = Path.GetFileName( filePath );
                 await SaveDataAsync( animes, Path.Combine( outputPath, fileName ) );
 
@@ -43,6 +43,11 @@ namespace MalBackup.FormatData
             return path;
         }
 
+        /// <summary>
+        /// Get animes with olf format from the specified JSON file.
+        /// </summary>
+        /// <param name="filePath">The JSON file path.</param>
+        /// <exception cref="InvalidDataException">Throws if the file data is invalid.</exception>
         static async Task<IEnumerable<OldAnimeFormat>> GetFileDataAsync( string filePath )
         {
             using FileStream stream = File.OpenRead( filePath );
@@ -50,11 +55,14 @@ namespace MalBackup.FormatData
             var animes = await JsonSerializer.DeserializeAsync<IEnumerable<OldAnimeFormat>>( stream );
             if( animes is null )
             {
-                throw new InvalidDataException( $"Empty anime list in '{filePath}'" );
+                throw new InvalidDataException( $"Invalid anime list format in '{filePath}'" );
             }
             return animes;
         }
 
+        /// <summary>
+        /// Saves the animes in a JSON file.
+        /// </summary>
         static async Task SaveDataAsync( IEnumerable<Anime> animes, string fileName )
         {
             using FileStream stream = File.OpenWrite( fileName );
