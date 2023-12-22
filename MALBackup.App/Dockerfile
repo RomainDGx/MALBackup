@@ -16,13 +16,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine
 WORKDIR /app
 
 RUN mkdir /output
-RUN chown $APP_UID /output
 RUN mkdir /Logs
-RUN chown $APP_UID /Logs
 
 # Copy everything needed to run the app from the "build" stage.
 COPY --from=build /app .
 
-USER $APP_UID
-
-ENTRYPOINT ["dotnet", "MALBackup.App.dll"]
+CMD ["dotnet", "MALBackup.App.dll"]
