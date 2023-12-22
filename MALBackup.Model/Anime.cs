@@ -26,7 +26,7 @@ namespace MALBackup.Model
         /// <summary>
         /// The anime watching status by the user.
         /// </summary>
-        [JsonPropertyName( "list_status" )]
+        [JsonPropertyName( "my_list_status" )]
         public UserStatus? UserStatus { get; set; }
     }
 }

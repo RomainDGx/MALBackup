@@ -1,133 +1,57 @@
-using MALBackup.Model;
-using System.Text;
-using System.Text.Json;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Quartz;
+using System;
 
 namespace MALBackup.App
 {
     class Program
     {
-        static async Task Main( string[] args )
+        static void Main( string[] args )
         {
-            var (clientId, userName, targetFolder) = ValidateArguments( args );
+            Host.CreateDefaultBuilder( args )
+                .UseCKMonitoring()
+                .ConfigureServices( ( ctx, services ) =>
+                {
+                    services.Configure<DownloadService.DownloaderConfiguration>( config =>
+                    {
+                        string? malClientId = ctx.Configuration["MALClientId"];
+                        if( string.IsNullOrEmpty( malClientId ) ) throw new Exception( "Configuration parameter 'MALClientId' is missing." );
+                        config.MALClientId = malClientId;
 
-            using HttpClient httpClient = new();
-            httpClient.DefaultRequestHeaders.Add( "X-MAL-CLIENT-ID", clientId );
+                        string? malUserName = ctx.Configuration["MALUserName"];
+                        if( string.IsNullOrEmpty( malUserName ) ) throw new Exception( "Configuration parameter 'MALUserName' is missing." );
+                        config.MALUserName = malUserName;
 
-            string? requestUri = $"https://api.myanimelist.net/v2/users/{userName}/animelist?sort=anime_title&limit=1000&offset=0&nsfw=true&fields=id,title,num_episodes,list_status{{status,num_episodes_watched,num_times_rewatched,rewatch_value}}";
+                        string? strRetry = ctx.Configuration["Retry"];
+                        if( !int.TryParse( strRetry, out int retry ) ) throw new Exception( "Configuration parameter 'Retry' is missing." );
+                        config.Retry = retry;
 
-            List<Anime> animes = new();
+                        string? outputDirectory = ctx.Configuration["OutputDirectory"];
+                        if( string.IsNullOrEmpty( outputDirectory ) ) throw new Exception( "Configuration parameter 'OutputDirectory' is missing." );
+                        config.OutputDirectory = outputDirectory;
+                    } );
 
-            while( requestUri is not null )
-            {
-                using HttpResponseMessage response = await SendRequestAsync( httpClient, requestUri );
+                    services.AddQuartz( config =>
+                    {
+                        var jobKey = new JobKey( "DownloadAnimeJob" );
+                        config.AddJob<DownloadService>( c => c.WithIdentity( jobKey ) );
 
-                ResponsePayload? payload = await ParseResponseContentAsync( await response.Content.ReadAsStreamAsync() );
-                ValidateResponsePayload( payload );
-
-                animes.AddRange( payload!.Data!.Select( AnimeListData.GetAnime ) );
-
-                requestUri = payload!.Paging!.Next;
-            }
-
-            string filePath = Path.Combine( targetFolder, $"{DateTime.UtcNow:yyyy-MM-dd-HH-mm-ss}.json" );
-            await SaveAnimesAsync( filePath, animes );
-        }
-
-        /// <summary>
-        /// Check the validity of the program arguments.
-        /// </summary>
-        /// <param name="args">Array of the program arguments.</param>
-        /// <returns>Tuple of the program arguments.</returns>
-        static (string ClientId, string UserName, string TargetFolder) ValidateArguments( string[] args )
-        {
-            if( args is null )
-            {
-                throw new ArgumentNullException( nameof( args ) );
-            }
-            if( args.Length != 3 )
-            {
-                throw new ArgumentException( $"Expected 3 arguments but received {args.Length} argument(s)." );
-            }
-            if( !Directory.Exists( args[2] ) )
-            {
-                throw new DirectoryNotFoundException( $"The directory doesn't exist '{args[2]}'." );
-            }
-            return (args[0], args[1], args[2]);
-        }
-
-        static async Task<HttpResponseMessage> SendRequestAsync( HttpClient httpClient, string requestUri )
-        {
-            HttpResponseMessage response = await httpClient.GetAsync( requestUri );
-
-            await ValidateHttpResponseAsync( response );
-
-            return response;
-        }
-
-        /// <summary>
-        /// Check if the response status is success.
-        /// </summary>
-        /// <exception cref="Exception">If the response is not success.</exception>
-        static async Task ValidateHttpResponseAsync( HttpResponseMessage response )
-        {
-            if( response is null )
-            {
-                throw new ArgumentNullException( nameof( response ) );
-            }
-            if( !response.IsSuccessStatusCode )
-            {
-                var builder = new StringBuilder( "Not success response." )
-                    .AppendLine()
-                    .Append( "\t- Status code: " )
-                    .Append( response.StatusCode )
-                    .AppendLine()
-                    .Append( "\t- Request uri : " )
-                    .Append( response.RequestMessage?.RequestUri )
-                    .AppendLine()
-                    .Append( "\t- Content : " )
-                    .Append( await response.Content.ReadAsStringAsync() );
-
-                throw new HttpRequestException( builder.ToString() );
-            }
-        }
-
-        static async Task<ResponsePayload?> ParseResponseContentAsync( Stream data )
-        {
-            JsonSerializerOptions options = new()
-            {
-                Converters = { StatusConverter.Instance }
-            };
-            return await JsonSerializer.DeserializeAsync<ResponsePayload>( data, options );
-        }
-
-        static void ValidateResponsePayload( ResponsePayload? response )
-        {
-            if( response is null )
-            {
-                throw new ArgumentNullException( nameof( response ) );
-            }
-            if( response.Data is null )
-            {
-                throw new InvalidDataException( $"{nameof( response )}.{nameof( response.Data )} is null." );
-            }
-            if( response.Paging is null )
-            {
-                throw new InvalidDataException( $"{nameof( response )}.{nameof( response.Paging )} is null." );
-            }
-        }
-
-        /// <summary>
-        /// Save the animes in Json format in the specified file.
-        /// </summary>
-        static async Task SaveAnimesAsync( string filePath, List<Anime> animes )
-        {
-            using FileStream stream = File.OpenWrite( filePath );
-
-            await JsonSerializer.SerializeAsync( stream, animes, new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                Converters = { StatusConverter.Instance }
-            } );
+                        config.AddTrigger( c =>
+                        {
+                            string? cronExpression = ctx.Configuration["CronExpression"];
+                            if( string.IsNullOrEmpty( cronExpression ) ) throw new Exception( "Configuration parameter 'CronExpression' is missing." );
+                            c.ForJob( jobKey )
+                             .WithIdentity( "DownloadAnimeJob-trigger" )
+                             .WithCronSchedule( cronExpression );
+                        } );
+                    } )
+                    .AddQuartzHostedService( c => c.WaitForJobsToComplete = true );
+                } )
+                .Build()
+                .Run();
         }
     }
 }
