@@ -16,7 +16,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine
 WORKDIR /app
 
 RUN mkdir /output
-RUN mkdir /Logs
+RUN mkdir /logs
 
 # Copy everything needed to run the app from the "build" stage.
 COPY --from=build /app .

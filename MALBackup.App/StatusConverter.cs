@@ -8,8 +8,6 @@ namespace MALBackup.App
 {
     internal class StatusConverter : JsonConverter<Status>
     {
-        internal static StatusConverter Instance => new();
-
         public override Status Read( ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options )
         {
             if( reader.TokenType != JsonTokenType.String )

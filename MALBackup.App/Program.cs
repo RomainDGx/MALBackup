@@ -1,57 +1,52 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Quartz;
-using System;
+using CK.Monitoring.Handlers;
+using CK.Monitoring;
+using Microsoft.Extensions.Configuration;
+using System.IO;
+using CK.Core;
+using System.Threading.Tasks;
 
 namespace MALBackup.App
 {
     class Program
     {
-        static void Main( string[] args )
+        static async Task Main( string[] args )
         {
-            Host.CreateDefaultBuilder( args )
-                .UseCKMonitoring()
-                .ConfigureServices( ( ctx, services ) =>
-                {
-                    services.Configure<DownloadService.DownloaderConfiguration>( config =>
-                    {
-                        string? malClientId = ctx.Configuration["MALClientId"];
-                        if( string.IsNullOrEmpty( malClientId ) ) throw new Exception( "Configuration parameter 'MALClientId' is missing." );
-                        config.MALClientId = malClientId;
+            var config = LoadConfiguration( args );
 
-                        string? malUserName = ctx.Configuration["MALUserName"];
-                        if( string.IsNullOrEmpty( malUserName ) ) throw new Exception( "Configuration parameter 'MALUserName' is missing." );
-                        config.MALUserName = malUserName;
+            using var go = InitGrandOutput( config );
+            var monitor = new ActivityMonitor( "Main monitor" );
 
-                        string? strRetry = ctx.Configuration["Retry"];
-                        if( !int.TryParse( strRetry, out int retry ) ) throw new Exception( "Configuration parameter 'Retry' is missing." );
-                        config.Retry = retry;
+            using var downloader = Downloader.TryCreate( monitor, config );
+            if( downloader is null ) return;
 
-                        string? outputDirectory = ctx.Configuration["OutputDirectory"];
-                        if( string.IsNullOrEmpty( outputDirectory ) ) throw new Exception( "Configuration parameter 'OutputDirectory' is missing." );
-                        config.OutputDirectory = outputDirectory;
-                    } );
+            await downloader.ExecuteAync();
+        }
 
-                    services.AddQuartz( config =>
-                    {
-                        var jobKey = new JobKey( "DownloadAnimeJob" );
-                        config.AddJob<DownloadService>( c => c.WithIdentity( jobKey ) );
+        static IConfigurationRoot LoadConfiguration( string[] args )
+        {
+            return new ConfigurationBuilder()
+                .SetBasePath( Directory.GetCurrentDirectory() )
+                .AddJsonFile( "appsettings.json", optional: false, reloadOnChange: true )
+                .AddJsonFile( "appsettings.Development.json", optional: true, reloadOnChange: true )
+                .AddEnvironmentVariables()
+                .AddCommandLine( args )
+                .Build();
+        }
 
-                        config.AddTrigger( c =>
-                        {
-                            string? cronExpression = ctx.Configuration["CronExpression"];
-                            if( string.IsNullOrEmpty( cronExpression ) ) throw new Exception( "Configuration parameter 'CronExpression' is missing." );
-                            c.ForJob( jobKey )
-                             .WithIdentity( "DownloadAnimeJob-trigger" )
-                             .WithCronSchedule( cronExpression );
-                        } );
-                    } )
-                    .AddQuartzHostedService( c => c.WaitForJobsToComplete = true );
-                } )
-                .Build()
-                .Run();
+        static GrandOutput? InitGrandOutput( IConfigurationRoot config )
+        {
+            if( config["LogDirectory"] is not string logDirectory )
+            {
+                System.Console.WriteLine( "The 'LogDirectory' property is missing in the configuration." );
+                return null;
+            }
+            var goConfig = new GrandOutputConfiguration { Handlers = { new TextFileConfiguration { Path = logDirectory } } };
+
+            if( bool.TryParse( config["UseConsoleLog"], out bool useConsoleLog ) && useConsoleLog )
+            {
+                goConfig.Handlers.Add( new ConsoleConfiguration() );
+            }
+            return GrandOutput.EnsureActiveDefault( goConfig );
         }
     }
 }
