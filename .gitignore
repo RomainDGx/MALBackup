@@ -4,3 +4,4 @@
 Logs/
 PickupDirectory/
 launchSettings.json
+appsettings.Development.json

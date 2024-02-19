@@ -1,8 +1,8 @@
+using CK.Core;
 using CK.Monitoring.Handlers;
 using CK.Monitoring;
 using Microsoft.Extensions.Configuration;
 using System.IO;
-using CK.Core;
 using System.Threading.Tasks;
 
 namespace MALBackup.App
@@ -27,7 +27,9 @@ namespace MALBackup.App
             return new ConfigurationBuilder()
                 .SetBasePath( Directory.GetCurrentDirectory() )
                 .AddJsonFile( "appsettings.json", optional: false, reloadOnChange: true )
+#if DEBUG
                 .AddJsonFile( "appsettings.Development.json", optional: true, reloadOnChange: true )
+#endif
                 .AddEnvironmentVariables()
                 .AddCommandLine( args )
                 .Build();
