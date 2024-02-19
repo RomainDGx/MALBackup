@@ -76,9 +76,9 @@ namespace MALBackup.App
 
             var animes = new List<Anime>();
             string? requestUri = $"https://api.myanimelist.net/v2/users/{_options.MALUserName}/animelist?sort=anime_title&limit=1000&offset=0&nsfw=true&fields=id,title,num_episodes,list_status{{status,num_episodes_watched,num_times_rewatched,rewatch_value}}";
-            int tries = 0;
+            int tries = 1;
 
-            while( requestUri is not null && !token.IsCancellationRequested && ++tries <= _options.Retry )
+            while( requestUri is not null && !token.IsCancellationRequested && tries <= _options.Retry )
             {
                 try
                 {
@@ -98,22 +98,24 @@ namespace MALBackup.App
 
                     requestUri = Check( content.Paging ).Next;
                 }
-                catch( MALApiResponseException e )
+                catch( Exception ex )
                 {
-                    var builder = new StringBuilder()
-                        .AppendLine( e.Message )
-                        .Append( "Status code: " )
-                        .AppendLine( e.StatusCode.ToString() )
-                        .Append( "Response content: " )
-                        .AppendLine( e.Response?.ToString() );
+                    if( ex is MALApiResponseException malEx )
+                    {
+                        var builder = new StringBuilder()
+                            .AppendLine( malEx.Message )
+                            .Append( "Status code: " )
+                            .AppendLine( malEx.StatusCode.ToString() )
+                            .Append( "Response content: " )
+                            .AppendLine( malEx.Response?.ToString() );
 
-                    _monitor.Error( builder.ToString(), e );
-                    await Task.Delay( TimeSpan.FromSeconds( tries * 5 ), token );
-                }
-                catch( Exception e )
-                {
-                    _monitor.Error( e );
-                    await Task.Delay( TimeSpan.FromSeconds( tries * 5 ), token );
+                        _monitor.Error( builder.ToString(), ex );
+                    }
+                    else
+                    {
+                        _monitor.Error( ex );
+                    }
+                    await Task.Delay( TimeSpan.FromSeconds( tries++ * 5 ), token );
                 }
             }
 

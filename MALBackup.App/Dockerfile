@@ -12,7 +12,7 @@ COPY MALBackup.Model/ MALBackup.Model/
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
     dotnet publish MALBackup.App/MALBackup.App.csproj --use-current-runtime -o /app /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine
+FROM mcr.microsoft.com/dotnet/runtime:8.0-alpine
 WORKDIR /app
 
 RUN mkdir /output
